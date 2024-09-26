@@ -1,2 +1,3 @@
-# educ-sso-charts
-keycloak for Education
+# sso-helm-charts
+
+![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)

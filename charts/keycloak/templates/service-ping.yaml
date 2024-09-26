@@ -1,0 +1,22 @@
+{{- if .Values.pingService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sso-keycloak.fullname" . }}-ping
+  labels: {{ include "sso-keycloak.labels" . | nindent 4 }}
+  annotations:
+    description: "The JGroups ping port for clustering."
+    {{- if .Values.tls.enabled }}
+    # see https://miminar.fedorapeople.org/_preview/openshift-enterprise/registry-redeploy/dev_guide/secrets.html#service-serving-certificate-secrets
+    service.alpha.openshift.io/serving-cert-secret-name: {{ include "sso-keycloak.fullname" . }}-x509-jgroups
+    {{- end }}
+spec:
+  clusterIP: None
+  ports:
+    - port: {{ .Values.pingService.port }}
+      name: ping
+      targetPort: ping
+      protocol: TCP
+  selector: {{ include "sso-keycloak.selectorLabels" . | nindent 4 }}
+  publishNotReadyAddresses: true
+{{- end }}

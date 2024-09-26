@@ -1,0 +1,15 @@
+# see https://developer.gov.bc.ca/OpenShift-User-Guide-to-Creating-and-Using-a-Sysdig-Team-for-Monitoring#sample-sysdig-team-object
+apiVersion: ops.gov.bc.ca/v1alpha1
+kind: SysdigTeam
+metadata:
+  name: {{ .Values.licensePlate }}-sysdigteam
+  labels: {{ include "sysdig.labels" . | nindent 4 }}
+  namespace: {{ .Values.licensePlate }}-tools
+spec:
+  team:
+    description: The Sysdig Team for {{ .Values.licensePlate }}
+    users:
+      {{- range $user := .Values.users }}
+        - name: {{ $user.name }}
+          role: {{ $user.role -}}
+      {{ end }}

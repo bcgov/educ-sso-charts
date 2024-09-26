@@ -1,0 +1,157 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/bcgov/sso
+  tag:  24.0.5-build.1
+  pullPolicy: Always
+
+project: sso-keycloak
+nameOverride: sso-keycloak
+fullnameOverride: sso-keycloak
+
+configuration:
+  enabled: false
+  version: "7.6"
+  data:
+
+networkPolicies:
+  enabled: true
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# see https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.0/html-single/red_hat_jboss_enterprise_application_platform_for_openshift/index#configuring_dns_ping
+pingService:
+  enabled: true
+  port: 8888
+
+maintenancePage:
+  enabled: false
+  active: false
+  replicaCount: 1
+  image:
+    repository: ghcr.io/bcgov/sso-maintenance
+    tag: dev
+    pullPolicy: Always
+  resources: {}
+
+admin:
+  username:
+  password:
+
+postgres:
+  host: sso-patroni
+  database: ssokeycloak
+  port: 5432
+  credentials:
+    secret: sso-patroni-appusers
+    usernameKey: username-appuser1
+    passwordKey: password-appuser1
+    username: postgres
+    password: postgres
+  poolSize:
+    min: 5
+    max: 20
+
+annotations:
+  timeout:
+
+# see https://github.com/keycloak/keycloak-containers/blob/master/server/README.md#start-a-keycloak-instance-with-custom-command-line-options
+additionalServerOptions: "-Dkeycloak.profile.feature.authorization=enabled -Djboss.persistent.log.dir=/var/log/eap"
+
+# see https://github.com/keycloak/keycloak-containers/blob/master/server/README.md#setting-up-tlsssl
+tls:
+  enabled: false
+
+persistentLog:
+  enabled: true
+  size: 5Gi
+  storageClass: netapp-file-standard
+  mountPath: /var/log/eap
+  annotations: {}
+  accessModes:
+    - ReadWriteMany
+
+resources:
+  limits:
+    cpu: 2
+    memory: 2Gi
+  requests:
+    cpu: 200m
+    memory: 1Gi
+
+rollingUpdate: {}
+
+livenessProbe:
+  enabled: true
+  verification: script
+  initialDelaySeconds: 240
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 6
+
+readinessProbe:
+  enabled: true
+  verification: script
+  initialDelaySeconds: 180
+  periodSeconds: 20
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 6
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+affinityTemplate: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        topologyKey: "kubernetes.io/hostname"
+        labelSelector:
+          matchLabels: {{ include "sso-keycloak.selectorLabels" . | nindent 10 }}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable:
+  maxUnavailable:
+
+serviceAccount:
+  create: true
+
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+patroni:
+  replicaCount: 3
+
+  image:
+    repository: ghcr.io/zalando/spilo-15
+    tag: 3.2-p1
+    pullPolicy: Always
+
+  postgresMajorVersion: 15
+
+  project: sso-keycloak
+  nameOverride: sso-patroni
+  fullnameOverride: sso-patroni
+
+  additionalCredentials:
+    - username: ssokeycloak
+      password:
+
+  persistentVolume:
+    size: 10Gi
+
+  podDisruptionBudget:
+    enabled: true
+
+tags:
+  patroni-enabled: true

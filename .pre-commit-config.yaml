@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+        files: \.sh
+      - id: check-json
+      - id: check-vcs-permalinks
+      - id: check-yaml
+        exclude: ^charts/
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.17.0
+    hooks:
+      - id: gitlint
+default_stages: [commit]

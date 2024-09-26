@@ -1,0 +1,59 @@
+name: Publish Helm Charts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "charts/**/Chart.yaml"
+      - ".github/workflows/publish-helm-chart.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-push-helm:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: hmarr/debug-action@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.8.2
+
+      - name: Add Helm Dependencies
+        run: |
+          helm repo add patroni https://bcgov.github.io/sso-helm-charts
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.4.0
+        with:
+          charts_dir: charts
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      ## Curent deployment process no longer needs a dependency free keycloak helm chart
+      # - name: Remove dependencies of Keycloak Helm chart
+      #   uses: mikefarah/yq@master
+      #   with:
+      #     cmd: yq -i 'del(.dependencies) | .version = .version + "-nodep"' ./charts/keycloak/Chart.yaml
+
+      # - name: Remove requirements of Keycloak Helm chart
+      #   run: |
+      #     rm -rf charts || true
+      #     rm requirements.lock || true
+      #   working-directory: ./charts/keycloak
+
+      # - name: Run chart-releaser
+      #   uses: helm/chart-releaser-action@v1.4.0
+      #   with:
+      #     charts_dir: charts
+      #   env:
+      #     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      #     CR_SKIP_EXISTING: true

@@ -1,0 +1,11 @@
+{{- if .Values.configuration.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sso-keycloak.fullname" . }}-sso-config
+  labels: {{ include "sso-keycloak.labels" . | nindent 4 }}
+data:
+  standalone-openshift.xml: |-
+{{ if .Values.configuration.data }}{{ (printf "%s" .Values.configuration.data) | indent 4 -}}
+{{ else }}{{ .Files.Get (printf "configurations/%s.xml" .Values.configuration.version) | indent 4 -}}{{ end }}
+{{ end }}

@@ -1,0 +1,5 @@
+charts/**/charts
+charts/**/requirements.lock
+charts/**/test-values.yaml
+charts/**/test-template.yaml
+get-pip.py

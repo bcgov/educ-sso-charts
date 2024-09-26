@@ -1,0 +1,17 @@
+{{- if .Values.persistentLog.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "sso-keycloak.fullname" . }}-logs
+  labels: {{ include "sso-keycloak.labels" . | nindent 4 }}
+  annotations: {{- toYaml .Values.persistentLog.annotations | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.persistentLog.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  storageClassName: {{ .Values.persistentLog.storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentLog.size | quote }}
+{{- end }}
