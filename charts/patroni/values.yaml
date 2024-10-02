@@ -7,8 +7,8 @@ image:
   tag: 3.2-p1
 
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: sso-patroni
+fullnameOverride: sso-patroni
 
 postgresMajorVersion: 15
 

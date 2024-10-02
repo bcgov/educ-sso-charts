@@ -5,7 +5,7 @@ appVersion: 24.0.5-build.1
 description: Open Source Identity and Access Management For Modern Applications and Services
 dependencies:
   - name: patroni
-    version: 1.6.0
+    version: 0.0.1
     repository: https://bcgov.github.io/EDUC-KEYCLOAK-CHARTS
     tags:
       - patroni-enabled
