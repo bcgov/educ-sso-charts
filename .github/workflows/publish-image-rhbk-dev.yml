@@ -1,9 +1,8 @@
 name: Create and publish Keycloak Docker image - Dev
 
 on:
-  push:
-    branches:
-      - 'feature/**'
+  workflow_dispatch:
+
 
 env:
   GITHUB_REGISTRY: ghcr.io
