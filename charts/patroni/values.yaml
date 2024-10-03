@@ -32,8 +32,8 @@ credentials:
 #   - username: myapp
 #     password:
 additionalCredentials:
-  username: appuser
-  password:
+ - username: appuser
+   password:
 
 # set to allow clients to connect without SSL enabled.
 allowNoSSL: true
