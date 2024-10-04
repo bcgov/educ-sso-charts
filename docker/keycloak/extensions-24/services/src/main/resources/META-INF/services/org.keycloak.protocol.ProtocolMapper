@@ -1,2 +1,2 @@
 com.github.bcgov.keycloak.mapper.SoamProtocolMapper
-com.github.bcgov.keycloak.tenant.mapper
+com.github.bcgov.keycloak.tenant.mapper.TenantProtocolMapper
