@@ -7,7 +7,7 @@ on:
 env:
   GITHUB_REGISTRY: ghcr.io
   REDHAT_REGISTRY: registry.redhat.io
-  IMAGE_NAME: bcgov/sso
+  IMAGE_NAME: bcgov/soam
 
 jobs:
   build-and-push-image:
