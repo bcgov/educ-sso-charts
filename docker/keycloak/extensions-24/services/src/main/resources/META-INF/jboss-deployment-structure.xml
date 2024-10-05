@@ -10,7 +10,10 @@
             <module name="org.keycloak.keycloak-services" export="true" />
             <module name="org.bouncycastle" export="true" />
             <module name="com.google.guava" export="true" />
-            <module name="org.jboss.logging" export="true" />
+            <module name="org.springframework.spring-web" export="true" />
+            <module name="org.springframework.spring-webflux" export="true" />
+            <module name="org.springframework.security.spring-security-oauth2-client" export="true" />
+            <module name="io.projectreactor.netty.reactor-netty-http" export="true" />
         </dependencies>
     </deployment>
 </jboss-deployment-structure>
