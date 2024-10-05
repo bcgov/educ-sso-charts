@@ -10,16 +10,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,37 +27,18 @@ public class SoamRestUtils {
 
   private static Logger logger = Logger.getLogger(SoamRestUtils.class);
 
-  private static SoamRestUtils soamRestUtilsInstance;
-
   private static ApplicationProperties props;
 
-  private SoamRestUtils() {
-    props = new ApplicationProperties();
-  }
+  private RestWebClient restWebClient;
 
-  public static SoamRestUtils getInstance() {
-    if (soamRestUtilsInstance == null) {
-      soamRestUtilsInstance = new SoamRestUtils();
-    }
-    return soamRestUtilsInstance;
-  }
-
-  public RestTemplate getRestTemplate(List<String> scopes) {
-    logger.debug("Calling get token method");
-    ClientCredentialsResourceDetails resourceDetails = new ClientCredentialsResourceDetails();
-    resourceDetails.setClientId(props.getClientID());
-    resourceDetails.setClientSecret(props.getClientSecret());
-    resourceDetails.setAccessTokenUri(props.getTokenURL());
-    if (scopes != null) {
-      resourceDetails.setScope(scopes);
-    }
-    return new OAuth2RestTemplate(resourceDetails, new DefaultOAuth2ClientContext());
+  public SoamRestUtils() {
+      this.restWebClient = new RestWebClient();
+      props = new ApplicationProperties();
   }
 
   public void performLogin(String identifierType, String identifierValue, String userID, SoamServicesCard servicesCard) {
     String url = props.getSoamApiURL() + "/login";
     final String correlationID = logAndGetCorrelationID(identifierValue, url, HttpMethod.POST.toString());
-    RestTemplate restTemplate = getRestTemplate(null);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
     headers.add("correlationID", correlationID);
@@ -86,7 +63,13 @@ public class SoamRestUtils {
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
 
     try {
-      restTemplate.postForEntity(url, request, SoamLoginEntity.class);
+      this.restWebClient.webClient().post()
+              .uri(url)
+              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
+              .body(Mono.just(request), HttpEntity.class)
+              .retrieve()
+              .bodyToMono(SoamLoginEntity.class)
+              .block();
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete login call: " + e.getMessage());
     }
@@ -95,28 +78,18 @@ public class SoamRestUtils {
   public SoamLoginEntity getSoamLoginEntity(String identifierType, String identifierValue) {
     String url = props.getSoamApiURL() + "/" + identifierType + "/" + identifierValue;
     final String correlationID = logAndGetCorrelationID(identifierValue, url, HttpMethod.GET.toString());
-    RestTemplate restTemplate = getRestTemplate(null);
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.add("correlationID", correlationID);
     try {
-      return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>("parameters", headers), SoamLoginEntity.class).getBody();
+      return this.restWebClient.webClient().get()
+              .uri(url)
+              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
+              .retrieve()
+              .bodyToMono(SoamLoginEntity.class)
+              .block();
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete getSoamLoginEntity call: " + e.getMessage());
-    }
-  }
-
-  public List<String> getSTSRoles(String identifierValue) {
-    String url = props.getSoamApiURL() + "/" + identifierValue + "/" + "sts-user-roles";
-    final String correlationID = logAndGetCorrelationID(identifierValue, url, HttpMethod.GET.toString());
-    RestTemplate restTemplate = getRestTemplate(null);
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    headers.add("correlationID", correlationID);
-    try {
-      return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>("parameters", headers), List.class).getBody();
-    } catch (final HttpClientErrorException e) {
-      throw new RuntimeException("Could not complete getSTSRoles call: " + e.getMessage());
     }
   }
 

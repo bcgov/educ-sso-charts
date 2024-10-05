@@ -28,6 +28,8 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
 
   private static Logger logger = Logger.getLogger(SoamFirstTimeLoginAuthenticator.class);
 
+  private SoamRestUtils soamRestUtils = new SoamRestUtils();
+
 
   @Override
   protected void actionImpl(AuthenticationFlowContext context, SerializedBrokeredIdentityContext serializedCtx, BrokeredIdentityContext brokerContext) {
@@ -139,7 +141,7 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
     logger.debug("SOAM: performing login for " + accountType + " user: " + guid);
 
     try {
-      SoamRestUtils.getInstance().performLogin(credType, guid, guid, servicesCard);
+      soamRestUtils.performLogin(credType, guid, guid, servicesCard);
     } catch (Exception e) {
       logger.error("Exception occurred within SOAM while processing login" + e.getMessage());
       throw new SoamRuntimeException("Exception occurred within SOAM while processing login, check downstream logs for SOAM API service");

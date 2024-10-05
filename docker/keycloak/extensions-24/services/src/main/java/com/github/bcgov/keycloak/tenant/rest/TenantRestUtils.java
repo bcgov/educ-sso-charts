@@ -2,21 +2,16 @@ package com.github.bcgov.keycloak.tenant.rest;
 
 
 import com.github.bcgov.keycloak.common.properties.ApplicationProperties;
+import com.github.bcgov.keycloak.rest.RestWebClient;
 import com.github.bcgov.keycloak.tenant.model.TenantAccess;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,43 +23,29 @@ public class TenantRestUtils {
 
   private static Logger logger = Logger.getLogger(TenantRestUtils.class);
 
-  private static TenantRestUtils tenantRestUtilsInstance;
-
   private static ApplicationProperties props;
 
-  private TenantRestUtils() {
+  private RestWebClient restWebClient;
+
+  public TenantRestUtils() {
+    this.restWebClient = new RestWebClient();
     props = new ApplicationProperties();
-  }
-
-  public static TenantRestUtils getInstance() {
-    if (tenantRestUtilsInstance == null) {
-      tenantRestUtilsInstance = new TenantRestUtils();
-    }
-    return tenantRestUtilsInstance;
-  }
-
-  public RestTemplate getRestTemplate(List<String> scopes) {
-    logger.debug("Calling get token method");
-    ClientCredentialsResourceDetails resourceDetails = new ClientCredentialsResourceDetails();
-    resourceDetails.setClientId(props.getClientID());
-    resourceDetails.setClientSecret(props.getClientSecret());
-    resourceDetails.setAccessTokenUri(props.getTokenURL());
-    if (scopes != null) {
-      resourceDetails.setScope(scopes);
-    }
-    return new OAuth2RestTemplate(resourceDetails, new DefaultOAuth2ClientContext());
   }
 
   public TenantAccess checkForValidTenant(String clientID, String tenantID) {
     String url = props.getSoamApiURL() + "/tenant?clientID=" + clientID + "&tenantID=" + tenantID;
     final String correlationID = logAndGetCorrelationID(tenantID, url, HttpMethod.GET.toString());
-    RestTemplate restTemplate = getRestTemplate(null);
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.add("correlationID", correlationID);
 
     try {
-      return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>("parameters", headers), TenantAccess.class).getBody();
+      return this.restWebClient.webClient().get()
+              .uri(url)
+              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
+              .retrieve()
+              .bodyToMono(TenantAccess.class)
+              .block();
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete checkForValidTenant call: " + e.getMessage());
     }

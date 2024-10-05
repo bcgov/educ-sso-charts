@@ -30,6 +30,7 @@ public class TenantProtocolMapper extends AbstractOIDCProtocolMapper
 
     private static Logger logger = Logger.getLogger(TenantProtocolMapper.class);
     private static final List<ProviderConfigProperty> configProperties = new ArrayList<ProviderConfigProperty>();
+    private TenantRestUtils tenantRestUtils = new TenantRestUtils();
 
     static {
         // OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
@@ -78,7 +79,7 @@ public class TenantProtocolMapper extends AbstractOIDCProtocolMapper
             return loginDetailCache.get(tenantID);
         }
         logger.debug("Tenant Access Fetching by Tenant ID: " + tenantID + " and Client ID: " + clientID);
-        TenantAccess tenantAccess = TenantRestUtils.getInstance().checkForValidTenant(clientID, tenantID);
+        TenantAccess tenantAccess = tenantRestUtils.checkForValidTenant(clientID, tenantID);
         loginDetailCache.put(tenantID, tenantAccess);
 
         return tenantAccess;

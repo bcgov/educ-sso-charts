@@ -32,6 +32,7 @@ public class SoamProtocolMapper extends AbstractOIDCProtocolMapper
 
     private static Logger logger = Logger.getLogger(SoamProtocolMapper.class);
     private static final List<ProviderConfigProperty> configProperties = new ArrayList<ProviderConfigProperty>();
+    private SoamRestUtils soamRestUtils = new SoamRestUtils();
 
     static {
         // OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
@@ -80,7 +81,7 @@ public class SoamProtocolMapper extends AbstractOIDCProtocolMapper
             return loginDetailCache.get(userGUID);
         }
         logger.debug("SOAM Fetching " + type + " Claims for UserGUID: " + userGUID);
-        SoamLoginEntity soamLoginEntity = SoamRestUtils.getInstance().getSoamLoginEntity(type, userGUID);
+        SoamLoginEntity soamLoginEntity = soamRestUtils.getSoamLoginEntity(type, userGUID);
         loginDetailCache.put(userGUID, soamLoginEntity);
 
         return soamLoginEntity;

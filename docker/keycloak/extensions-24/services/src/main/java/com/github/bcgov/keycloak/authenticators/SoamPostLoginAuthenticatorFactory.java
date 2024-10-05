@@ -17,7 +17,6 @@
 
 package com.github.bcgov.keycloak.authenticators;
 
-import com.github.bcgov.keycloak.authenticators.SoamPostLoginAuthenticator;
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.AuthenticatorFactory;

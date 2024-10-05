@@ -2,6 +2,7 @@ package com.github.bcgov.keycloak.common.properties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
+import org.springframework.stereotype.Component;
 
 /**
  * Class holds all application properties
@@ -9,9 +10,12 @@ import org.jboss.logging.Logger;
  * @author Marco Villeneuve
  *
  */
+@Component
 public class ApplicationProperties {
   public static final ObjectMapper mapper = new ObjectMapper();
 	private static Logger logger = Logger.getLogger(ApplicationProperties.class);
+	public static final String CORRELATION_ID = "correlationID";
+	public static final String SOAM = "SOAM";
 	private String soamApiURL;
 	private String tokenURL;
 	private String clientID;
