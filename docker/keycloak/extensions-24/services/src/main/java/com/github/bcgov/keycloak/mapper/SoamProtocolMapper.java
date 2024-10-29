@@ -1,13 +1,13 @@
 package com.github.bcgov.keycloak.mapper;
 
 
-import com.github.bcgov.keycloak.common.utils.ExpiringConcurrentHashMap;
-import com.github.bcgov.keycloak.common.utils.ExpiringConcurrentHashMapListener;
 import com.github.bcgov.keycloak.exception.SoamRuntimeException;
 import com.github.bcgov.keycloak.model.SoamLoginEntity;
 import com.github.bcgov.keycloak.model.SoamServicesCard;
 import com.github.bcgov.keycloak.model.SoamStudent;
 import com.github.bcgov.keycloak.rest.SoamRestUtils;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.jboss.logging.Logger;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.UserSessionModel;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * SOAM Protocol Mapper Will be used to set Education specific claims for our
@@ -38,22 +39,9 @@ public class SoamProtocolMapper extends AbstractOIDCProtocolMapper
         // OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
         OIDCAttributeMapperHelper.addIncludeInTokensConfig(configProperties, SoamProtocolMapper.class);
     }
-
-    //Create hashmap with 30 second expiry.
-    private ExpiringConcurrentHashMap<String, SoamLoginEntity> loginDetailCache = new ExpiringConcurrentHashMap<>(30000, new ExpiringConcurrentHashMapListener<String, SoamLoginEntity>() {
-
-        @Override
-        public void notifyOnAdd(String key, SoamLoginEntity value) {
-            logger.debug("Adding SoamLoginEntity to SOAM cache, key: " + key);
-        }
-
-        @Override
-        public void notifyOnRemoval(String key, SoamLoginEntity value) {
-            logger.debug("Removing SoamLoginEntity from SOAM cache, key: " + key);
-            logger.debug("Current cache size on this node: " + loginDetailCache.size());
-        }
-    });
-
+    private Cache<String, SoamLoginEntity> loginDetailCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(30, TimeUnit.SECONDS)
+            .build();
     public static final String PROVIDER_ID = "oidc-soam-mapper";
 
     public List<ProviderConfigProperty> getConfigProperties() {
@@ -77,8 +65,8 @@ public class SoamProtocolMapper extends AbstractOIDCProtocolMapper
     }
 
     private SoamLoginEntity fetchSoamLoginEntity(String type, String userGUID) {
-        if (loginDetailCache.containsKey(userGUID)) {
-            return loginDetailCache.get(userGUID);
+        if (null != loginDetailCache.getIfPresent(userGUID)) {
+            return loginDetailCache.getIfPresent(userGUID);
         }
         logger.debug("SOAM Fetching " + type + " Claims for UserGUID: " + userGUID);
         SoamLoginEntity soamLoginEntity = soamRestUtils.getSoamLoginEntity(type, userGUID);

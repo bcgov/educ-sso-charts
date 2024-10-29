@@ -1,10 +1,10 @@
 package com.github.bcgov.keycloak.tenant.mapper;
 
 
-import com.github.bcgov.keycloak.common.utils.ExpiringConcurrentHashMap;
-import com.github.bcgov.keycloak.common.utils.ExpiringConcurrentHashMapListener;
 import com.github.bcgov.keycloak.tenant.model.TenantAccess;
 import com.github.bcgov.keycloak.tenant.rest.TenantRestUtils;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.jboss.logging.Logger;
 import org.keycloak.models.ClientSessionContext;
 import org.keycloak.models.KeycloakSession;
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Tenant Protocol Mapper Will be used to set Tenant valid attribute
@@ -38,7 +39,7 @@ public class TenantProtocolMapper extends AbstractOIDCProtocolMapper
     }
 
     //Create hashmap with 30 second expiry.
-    private ExpiringConcurrentHashMap<String, TenantAccess> loginDetailCache = new ExpiringConcurrentHashMap<>(30000, new ExpiringConcurrentHashMapListener<String, TenantAccess>() {
+/*    private ExpiringConcurrentHashMap<String, TenantAccess> loginDetailCache = new ExpiringConcurrentHashMap<>(30000, new ExpiringConcurrentHashMapListener<String, TenantAccess>() {
 
         @Override
         public void notifyOnAdd(String key, TenantAccess value) {
@@ -50,8 +51,10 @@ public class TenantProtocolMapper extends AbstractOIDCProtocolMapper
             logger.debug("Removing TenantAccessEntity from Tenant cache, key: " + key);
             logger.debug("Current cache size on this node: " + loginDetailCache.size());
         }
-    });
-
+    });*/
+    private Cache<String, TenantAccess> loginDetailCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(30, TimeUnit.SECONDS)
+            .build();
     public static final String PROVIDER_ID = "oidc-tenant-mapper";
 
     public List<ProviderConfigProperty> getConfigProperties() {
@@ -75,8 +78,8 @@ public class TenantProtocolMapper extends AbstractOIDCProtocolMapper
     }
 
     private TenantAccess fetchTenantAccessEntity(String clientID, String tenantID) {
-        if (loginDetailCache.containsKey(tenantID)) {
-            return loginDetailCache.get(tenantID);
+        if (null != loginDetailCache.getIfPresent(tenantID)) {
+            return loginDetailCache.getIfPresent(tenantID);
         }
         logger.debug("Tenant Access Fetching by Tenant ID: " + tenantID + " and Client ID: " + clientID);
         TenantAccess tenantAccess = tenantRestUtils.checkForValidTenant(clientID, tenantID);
