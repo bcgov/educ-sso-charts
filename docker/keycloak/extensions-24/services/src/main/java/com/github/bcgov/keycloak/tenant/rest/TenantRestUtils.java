@@ -2,7 +2,6 @@ package com.github.bcgov.keycloak.tenant.rest;
 
 
 import com.github.bcgov.keycloak.common.properties.ApplicationProperties;
-import com.github.bcgov.keycloak.rest.RestWebClient;
 import com.github.bcgov.keycloak.tenant.model.TenantAccess;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
@@ -10,9 +9,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
 
-import java.util.Collections;
-import java.util.UUID;
+
+import java.util.*;
 
 /**
  * This class is used for REST calls
@@ -23,29 +23,51 @@ public class TenantRestUtils {
 
   private static Logger logger = Logger.getLogger(TenantRestUtils.class);
 
+  private static TenantRestUtils tenantRestUtilsInstance;
+
   private static ApplicationProperties props;
 
-  private RestWebClient restWebClient;
-
   public TenantRestUtils() {
-    this.restWebClient = new RestWebClient();
     props = new ApplicationProperties();
   }
 
+  public static TenantRestUtils getInstance() {
+    if (tenantRestUtilsInstance == null) {
+      tenantRestUtilsInstance = new TenantRestUtils();
+    }
+    return tenantRestUtilsInstance;
+  }
+  public String getToken() {
+    logger.debug("Calling get token method");
+    RestClient restClient = RestClient.create();
+    return restClient
+            .post()
+            .uri(props.getTokenURL())
+            .headers(
+                    headers -> {
+                      headers.setBasicAuth(props.getClientID(), props.getClientSecret());
+                      headers.set("Content-Type", "application/json");
+                    })
+            .retrieve()
+            .body(String.class);
+  }
+
   public TenantAccess checkForValidTenant(String clientID, String tenantID) {
-    String url = props.getSoamApiURL() + "/tenant?clientID=" + clientID + "&tenantID=" + tenantID;
+    String url = props.getSoamApiURL() + "/" + clientID + "/" + tenantID;
     final String correlationID = logAndGetCorrelationID(tenantID, url, HttpMethod.GET.toString());
+
+    RestClient restClient = RestClient.create();
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.add("correlationID", correlationID);
-
+    headers.add("Authorization", "Bearer " + getToken());
     try {
-      return this.restWebClient.webClient().get()
+      return restClient.get()
               .uri(url)
-              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
+              .headers(
+                      heads -> heads.addAll(headers))
               .retrieve()
-              .bodyToMono(TenantAccess.class)
-              .block();
+              .body(TenantAccess.class);
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete checkForValidTenant call: " + e.getMessage());
     }

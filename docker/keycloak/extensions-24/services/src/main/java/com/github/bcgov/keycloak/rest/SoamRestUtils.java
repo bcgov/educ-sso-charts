@@ -6,14 +6,13 @@ import com.github.bcgov.keycloak.model.SoamLoginEntity;
 import com.github.bcgov.keycloak.model.SoamServicesCard;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -27,22 +26,47 @@ public class SoamRestUtils {
 
   private static Logger logger = Logger.getLogger(SoamRestUtils.class);
 
+  private static SoamRestUtils soamRestUtilsInstance;
+
   private static ApplicationProperties props;
 
-  private RestWebClient restWebClient;
-
   public SoamRestUtils() {
-      this.restWebClient = new RestWebClient();
-      props = new ApplicationProperties();
+    props = new ApplicationProperties();
+  }
+
+  public static SoamRestUtils getInstance() {
+    if (soamRestUtilsInstance == null) {
+      soamRestUtilsInstance = new SoamRestUtils();
+    }
+    return soamRestUtilsInstance;
+  }
+
+  public String getToken() {
+    logger.debug("Calling get token method");
+    RestClient restClient = RestClient.create();
+    return restClient
+            .post()
+            .uri(props.getTokenURL())
+            .headers(
+                    headers -> {
+                      headers.setBasicAuth(props.getClientID(), props.getClientSecret());
+                      headers.set("Content-Type", "application/json");
+                    })
+            .retrieve()
+            .body(String.class);
   }
 
   public void performLogin(String identifierType, String identifierValue, String userID, SoamServicesCard servicesCard) {
     String url = props.getSoamApiURL() + "/login";
     final String correlationID = logAndGetCorrelationID(identifierValue, url, HttpMethod.POST.toString());
+
+    RestClient restClient = RestClient.create();
+
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
     headers.add("correlationID", correlationID);
-    MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
+    headers.add("Authorization", "Bearer " + getToken());
+    MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
     map.add("identifierType", identifierType);
     map.add("identifierValue", identifierValue);
     map.add("userID", userID);
@@ -60,16 +84,15 @@ public class SoamRestUtils {
       map.add("userDisplayName", servicesCard.getUserDisplayName());
     }
 
-    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-
     try {
-      this.restWebClient.webClient().post()
+      restClient.post()
               .uri(url)
-              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
-              .body(Mono.just(request), HttpEntity.class)
+              .headers(
+                      heads -> heads.addAll(headers))
+              .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+              .body(map)
               .retrieve()
-              .bodyToMono(SoamLoginEntity.class)
-              .block();
+              .toBodilessEntity();
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete login call: " + e.getMessage());
     }
@@ -78,16 +101,19 @@ public class SoamRestUtils {
   public SoamLoginEntity getSoamLoginEntity(String identifierType, String identifierValue) {
     String url = props.getSoamApiURL() + "/" + identifierType + "/" + identifierValue;
     final String correlationID = logAndGetCorrelationID(identifierValue, url, HttpMethod.GET.toString());
+
+    RestClient restClient = RestClient.create();
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.add("correlationID", correlationID);
+    headers.add("Authorization", "Bearer " + getToken());
     try {
-      return this.restWebClient.webClient().get()
+      return restClient.get()
               .uri(url)
-              .headers(httpHeadersOnWebClientBeingBuilt -> httpHeadersOnWebClientBeingBuilt.addAll( headers ))
+              .headers(
+                      heads -> heads.addAll(headers))
               .retrieve()
-              .bodyToMono(SoamLoginEntity.class)
-              .block();
+              .body(SoamLoginEntity.class);
     } catch (final HttpClientErrorException e) {
       throw new RuntimeException("Could not complete getSoamLoginEntity call: " + e.getMessage());
     }
