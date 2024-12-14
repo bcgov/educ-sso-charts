@@ -52,28 +52,19 @@ public class SoamPostLoginAuthenticator extends AbstractIdpAuthenticator {
         logger.debug("Context Key: " + s + " Value: " + brokerClaims.get(s));
       }
 
-      String accountType = context.getUser().getFirstAttribute("account_type");
-
-      //This is added for BCSC - direct IDP
-      if (accountType == null) {
-        accountType = (String) brokerContext.getContextData().get("user.attributes.account_type");
-      }
+      String accountType = context.getUser().getFirstAttribute("user.attributes.account_type");
 
       if (accountType == null) {
         throw new SoamRuntimeException("Account type is null; account type should always be available, check the IDP mappers for the hardcoded attribute");
       }
 
-      JsonWebToken token = (JsonWebToken) brokerContext.getContextData().get("VALIDATED_ID_TOKEN");
-
-      Map<String, Object> otherClaims = token.getOtherClaims();
-      logger.debug(ApplicationProperties.mapper.writeValueAsString(otherClaims));
       UserModel existingUser = context.getUser();
       String user_guid = null;
 
       switch (accountType) {
         case "entra":
           logger.debug("SOAM Post: Account type entra found");
-          user_guid = (String) otherClaims.get("entra_user_id");
+          user_guid = CommonUtils.getValueForAttribute("user.attributes.entra_user_id", brokerContext);
           existingUser.setSingleAttribute("user_guid", user_guid);
           if (user_guid == null) {
             throw new SoamRuntimeException("No entra_user_id value was found in token");
@@ -82,7 +73,7 @@ public class SoamPostLoginAuthenticator extends AbstractIdpAuthenticator {
           break;
         case "bceidbasic":
           logger.debug("SOAM Post: Account type basic bceid found");
-          user_guid = (String) otherClaims.get("bceid_user_guid");
+          user_guid = CommonUtils.getValueForAttribute("user.attributes.bceid_user_guid", brokerContext);
           existingUser.setSingleAttribute("user_guid", user_guid);
           if (user_guid == null) {
             throw new SoamRuntimeException("No bceid_user_guid value was found in token");
@@ -91,7 +82,7 @@ public class SoamPostLoginAuthenticator extends AbstractIdpAuthenticator {
           break;
         case "bcsc":
           logger.debug("SOAM Post: Account type bcsc found");
-          user_guid = ((List<String>) brokerContext.getContextData().get("user.attributes.did")).get(0);
+          user_guid = CommonUtils.getValueForAttribute("user.attributes.did", brokerContext);
           existingUser.setSingleAttribute("user_did", user_guid);
           if (user_guid == null) {
             throw new SoamRuntimeException("No bcsc_did value was found in token");
