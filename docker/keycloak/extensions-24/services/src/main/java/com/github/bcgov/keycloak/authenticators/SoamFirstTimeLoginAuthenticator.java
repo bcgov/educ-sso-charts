@@ -51,25 +51,13 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
       logger.debug("Context Key: " + s + " Value: " + brokerClaims.get(s));
     }
 
-    JsonWebToken token = (JsonWebToken) brokerContext.getContextData().get("VALIDATED_ID_TOKEN");
-
-    Map<String, Object> otherClaims = token.getOtherClaims();
-    for (String s : otherClaims.keySet()) {
-      logger.debug("VALIDATED_ID_TOKEN Key: " + s + " Value: " + otherClaims.get(s));
-    }
-
-    String accountType = (String) otherClaims.get("account_type");
-
-    //This is added for BCSC - direct IDP
-    if (accountType == null) {
-      accountType = ((List<String>) brokerContext.getContextData().get("user.attributes.account_type")).get(0);
-    }
+    String accountType = CommonUtils.getValueForAttribute("user.attributes.account_type", brokerContext);
 
     if (accountType == null) {
       throw new SoamRuntimeException("Account type is null; account type should always be available, check the IDP mappers for the hardcoded attribute");
     }
 
-    String username = ((List<String>) brokerContext.getContextData().get("user.attributes.username")).get(0);
+    String username = CommonUtils.getValueForAttribute("user.attributes.username", brokerContext);
 
     switch (accountType) {
       case "entra":
@@ -77,14 +65,14 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
         if (username == null) {
           throw new SoamRuntimeException("No entra oid value was found in token");
         }
-        createOrUpdateUser((String) otherClaims.get("entra_user_id"), accountType, "ENTRA", null);
+        createOrUpdateUser(CommonUtils.getValueForAttribute("user.attributes.entra_user_id", brokerContext), accountType, "ENTRA", null);
         break;
       case "bceidbasic":
         logger.debug("SOAM: Account type bceid found");
         if (username == null) {
           throw new SoamRuntimeException("No bceid_user_guid value was found in token");
         }
-        createOrUpdateUser((String) otherClaims.get("bceid_user_guid"), accountType, "BASIC", null);
+        createOrUpdateUser(CommonUtils.getValueForAttribute("user.attributes.bceid_user_guid", brokerContext), accountType, "BASIC", null);
         break;
       case "bcsc":
         logger.debug("SOAM: Account type bcsc found");
@@ -118,7 +106,7 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
       federatedUser.setEnabled(true);
 
       if (accountType.equals("bcsc")) {
-        federatedUser.setSingleAttribute("user_did", ((List<String>) brokerContext.getContextData().get("user.attributes.did")).get(0));
+        federatedUser.setSingleAttribute("user_did", CommonUtils.getValueForAttribute("user.attributes.did", brokerContext));
       }
 
       for (Map.Entry<String, List<String>> attr : serializedCtx.getAttributes().entrySet()) {
