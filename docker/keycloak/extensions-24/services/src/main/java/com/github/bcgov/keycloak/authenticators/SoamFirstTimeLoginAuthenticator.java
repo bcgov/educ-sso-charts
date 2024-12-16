@@ -70,9 +70,9 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
       case "bceidbasic":
         logger.debug("SOAM: Account type bceid found");
         if (username == null) {
-          throw new SoamRuntimeException("No bceid_user_guid value was found in token");
+          throw new SoamRuntimeException("No bceid_guid value was found in token");
         }
-        createOrUpdateUser(CommonUtils.getValueForAttribute("user.attributes.bceid_user_guid", brokerContext), accountType, "BASIC", null);
+        createOrUpdateUser(CommonUtils.getValueForAttribute("user.attributes.bceid_guid", brokerContext), accountType, "BASIC", null);
         break;
       case "bcsc":
         logger.debug("SOAM: Account type bcsc found");
