@@ -52,7 +52,7 @@ public class SoamPostLoginAuthenticator extends AbstractIdpAuthenticator {
         logger.debug("Context Key: " + s + " Value: " + brokerClaims.get(s));
       }
 
-      String accountType = context.getUser().getFirstAttribute("user.attributes.account_type");
+      String accountType = CommonUtils.getValueForAttribute("user.attributes.account_type", brokerContext);
 
       if (accountType == null) {
         throw new SoamRuntimeException("Account type is null; account type should always be available, check the IDP mappers for the hardcoded attribute");
