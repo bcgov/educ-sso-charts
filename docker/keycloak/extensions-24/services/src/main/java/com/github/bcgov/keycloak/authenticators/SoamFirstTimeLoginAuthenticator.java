@@ -51,6 +51,13 @@ public class SoamFirstTimeLoginAuthenticator extends AbstractIdpAuthenticator {
       logger.debug("Context Key: " + s + " Value: " + brokerClaims.get(s));
     }
 
+    JsonWebToken token = (JsonWebToken) brokerContext.getContextData().get("VALIDATED_ID_TOKEN");
+
+    Map<String, Object> otherClaims = token.getOtherClaims();
+    for (String s : otherClaims.keySet()) {
+      logger.debug("VALIDATED_ID_TOKEN Key: " + s + " Value: " + otherClaims.get(s));
+    }
+
     String accountType = CommonUtils.getValueForAttribute("user.attributes.account_type", brokerContext);
 
     if (accountType == null) {
